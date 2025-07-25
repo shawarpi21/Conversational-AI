@@ -1,0 +1,190 @@
++*In[ ]:*+
+[source, ipython3]
+----
+import json
+from typing import Dict, List
+import random
+----
+
+
++*In[ ]:*+
+[source, ipython3]
+----
+# Configurable settings
+USER_PREFERENCES_FILE = "user_preferences.json"
+LAYOUT_TEMPLATES_FILE = "layout_templates.json"
+----
+
+
++*In[ ]:*+
+[source, ipython3]
+----
+
+class AutoPlanAIChatbot:
+    def __init__(self):
+        self.user_data = {}
+        self.current_step = "welcome"
+        self.user_prefs = self.load_user_preferences()
+        self.layout_templates = self.load_layout_templates()
+        
+    def load_user_preferences(self) -> Dict:
+        try:
+            with open(USER_PREFERENCES_FILE, 'r') as f:
+                return json.load(f)
+        except (FileNotFoundError, json.JSONDecodeError):
+            return {}
+    
+    def load_layout_templates(self) -> Dict:
+        try:
+            with open(LAYOUT_TEMPLATES_FILE, 'r') as f:
+                return json.load(f)
+        except (FileNotFoundError, json.JSONDecodeError):
+            return {
+                "residential": {
+                    "bungalow": "basic_bungalow_template",
+                    "apartment": "urban_apartment_template"
+                },
+                "commercial": {
+                    "office": "open_office_template",
+                    "retail": "store_layout_template"
+                }
+            }
+    
+    def save_user_preferences(self):
+        with open(USER_PREFERENCES_FILE, 'w') as f:
+            json.dump(self.user_prefs, f, indent=2)
+    
+    def greet_user(self) -> str:
+        responses = [
+            "Welcome to AutoPlanAI! I'm your intelligent architectural assistant.",
+            "Hello! I'm here to help design your perfect space.",
+            "Hi there! Let's create some amazing architectural plans together."
+        ]
+        self.current_step = "property_type"
+        return random.choice(responses)
+    
+    def handle_property_type(self, user_input: str) -> str:
+        property_types = {
+            '1': 'bungalow', '2': 'apartment', '3': 'office', '4': 'retail', '5': 'custom'
+        }
+        
+        if user_input.lower() in ['bungalow', 'apartment', 'office', 'retail', 'custom']:
+            self.user_data['property_type'] = user_input.lower()
+        elif user_input in property_types:
+            self.user_data['property_type'] = property_types[user_input]
+        else:
+            return "Sorry, I didn't understand. Please choose:\n1. Bungalow\n2. Apartment\n3. Office\n4. Retail\n5. Custom"
+        
+        self.current_step = "floors"
+        return "Great! How many floors will your building have? (Enter a number)"
+    
+    def handle_floors(self, user_input: str) -> str:
+        try:
+            floors = int(user_input)
+            if floors <= 0:
+                raise ValueError
+            self.user_data['floors'] = floors
+            self.current_step = "rooms"
+            return f"Got it, {floors} floor(s). Now, what types of rooms do you need on each floor?"
+        except ValueError:
+            return "Please enter a valid positive number for floors."
+    
+    def handle_rooms(self, user_input: str) -> str:
+        self.user_data['rooms'] = user_input
+        self.current_step = "special_features"
+        return "Any special features? (e.g., garden, pool, garage, smart home setup)"
+    
+    def handle_special_features(self, user_input: str) -> str:
+        self.user_data['special_features'] = user_input
+        self.current_step = "generate_layout"
+        return "Would you like to generate a preliminary layout? (yes/no)"
+    
+    def generate_layout(self) -> str:
+        property_type = self.user_data.get('property_type', 'custom')
+        rooms = self.user_data.get('rooms', 'standard rooms')
+        
+        layout = f"Generated {property_type} layout with:\n"
+        layout += f"- Floors: {self.user_data.get('floors', 1)}\n"
+        layout += f"- Room types: {rooms}\n"
+        layout += f"- Special features: {self.user_data.get('special_features', 'none')}\n"
+        
+        # Store in user preferences for future reference
+        user_id = hash(json.dumps(self.user_data, sort_keys=True))
+        self.user_prefs[str(user_id)] = self.user_data
+        self.save_user_preferences()
+        
+        self.current_step = "feedback"
+        return layout + "\nWhat would you like to change? (Or say 'done' to finish)"
+    
+    def handle_feedback(self, user_input: str) -> str:
+        if user_input.lower() == 'done':
+            self.current_step = "complete"
+            return "Your design is complete! Would you like to save it?"
+        
+        # Simulate layout adjustment based on feedback
+        adjusted_layout = f"Adjusted layout based on your input: '{user_input}'"
+        adjusted_layout += "\n\nWhat else would you like to change? (Or say 'done' to finish)"
+        
+        # Update preferences based on feedback
+        user_id = hash(json.dumps(self.user_data, sort_keys=True))
+        if str(user_id) in self.user_prefs:
+            self.user_prefs[str(user_id)]['feedback'] = user_input
+            
+        return adjusted_layout
+    
+    def process_input(self, user_input: str) -> str:
+        if self.current_step == "welcome":
+            return self.greet_user()
+        elif self.current_step == "property_type":
+            return self.handle_property_type(user_input)
+        elif self.current_step == "floors":
+            return self.handle_floors(user_input)
+        elif self.current_step == "rooms":
+            return self.handle_rooms(user_input)
+        elif self.current_step == "special_features":
+            return self.handle_special_features(user_input)
+        elif self.current_step == "generate_layout":
+            if user_input.lower().startswith('y'):
+                return self.generate_layout()
+            else:
+                return "What would you like to change before generating?"
+        elif self.current_step == "feedback":
+            return self.handle_feedback(user_input)
+        elif self.current_step == "complete":
+            self.current_step = "welcome"  # Reset conversation
+            return "Thank you for using AutoPlanAI! Start over or exit."
+        else:
+            self.current_step = "welcome"
+            return "I didn't understand that. Starting over."
+
+class ChatInterface:
+    def __init__(self):
+        self.bot = AutoPlanAIChatbot()
+    
+    def start_chat(self):
+        print("=== AutoPlanAI Architectural Assistant ===")
+        print(self.bot.greet_user())
+        
+        while True:
+            user_input = input("\nYou: ")
+            
+            if user_input.lower() in ['exit', 'quit', 'bye']:
+                print("AutoPlanAI: Goodbye! Come back anytime for more design help.")
+                break
+                
+            response = self.bot.process_input(user_input)
+            print(f"AutoPlanAI: {response}")
+
+# Main execution
+if __name__ == "__main__":
+    interface = ChatInterface()
+    interface.start_chat()
+
+----
+
+
++*In[ ]:*+
+[source, ipython3]
+----
+
+----
