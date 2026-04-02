@@ -1,6 +1,7 @@
- AutoPlanAI
+ Conversational-AI
 
-AutoPlanAI is a smart layout planner that uses artificial intelligence to help users design homes, bungalows, or office spaces through a chat-based interface. The system takes user inputs like number of floors, types of rooms, accessories (garden, swimming pool, etc.), and generates a floor layout automatically.
+
+Conversational-AI is a smart layout planner that uses artificial intelligence to help users design homes, bungalows, or office spaces through a chat-based interface. The system takes user inputs like number of floors, types of rooms, accessories (garden, swimming pool, etc.), and generates a floor layout automatically.
 
 The main goal of AutoPlanAI is to make layout planning easy and interactive using AI. The system can also learn from user feedback and improve its suggestions over time.
 # Project Objective
